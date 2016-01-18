@@ -304,6 +304,7 @@ After the following changes in branch #{branch}
 #{errorsMessage}
 """
 
+            message = message.replace /\x1B\[\d+m/g, ''
             console.debug(message)
             f message
           )
