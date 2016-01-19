@@ -230,7 +230,6 @@ Author: #{item.author.fullName}
                   return
                 errors = []
                 grab text, (result) ->
-                  console.debug(result)
                   errors.push(
                     build: recursiveBuildInfo.fullDisplayName
                     errorText: result
