@@ -1,7 +1,7 @@
 {
   "name": "hubot-jenkins-pull",
   "description": "A script for pulling non-blocking tests from Jenkins and notifying developers about errors",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Ilya Lyaukin <ilya.lyaukin@lamoda.ru>",
   "license": "MIT",
   "keywords": "jenkins",
