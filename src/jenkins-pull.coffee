@@ -5,7 +5,7 @@
 #   HUBOT_JENKINS_URL - URL of your company's Jenkins
 #
 # Commands:
-#   hubot subscribe <build url or name> - build to subscribe to
+#   hubot subscribe <job url or name> - job to subscribe to
 #
 # Notes:
 #   <optional notes required for the script>
