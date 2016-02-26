@@ -57,10 +57,15 @@ mapObject = (obj, f) ->
 
 Array::flatten = -> [].concat(this...)
 Array::chomp = -> this.slice(0, -1)
+
 promisify = (f) ->
-  defer = Q.defer()
-  f ((val) -> defer.resolve(val)), ((err) -> defer.reject(err))
-  defer.promise
+  deferred = Q.defer()
+  try
+    f deferred.resolve, deferred.reject
+  catch err
+    deferred.reject err
+  deferred.promise
+
 similarity = (a, b) ->
   stat = (list) ->
     result = {}
@@ -171,6 +176,16 @@ pull = (robot) ->
 
   warnResponse = (res) ->
     console.warn(res)
+
+  reportFuckup = (res, url) ->
+    if res instanceof Error
+      message = """
+Error processing #{url}:
+#{res.stack}
+"""
+      fuckupRoom = robot.brain.data.jenkins?.fuckupRoom
+      robot.messageRoom(fuckupRoom, message) if fuckupRoom
+      console.error message
 
   pullJob = (jobUrl, f) ->
     getAPI(jobUrl) (res, jobInfo) ->
@@ -307,6 +322,9 @@ After the following changes in branch #{branch}
             console.debug(message)
             f message
           )
+          .catch((res) ->
+            reportFuckup(res, buildInfo.url)
+          )
       Q.all(
         jobInfo.builds.filter((build) ->
           suitable = ((lastSeenBuildNumber is undefined and build.number >= topBuildNumber - 1) or
@@ -333,8 +351,8 @@ After the following changes in branch #{branch}
           maxNumber = max(numbers)
           robot.brain.data.jenkins.history[jobUrl].lastSeenBuildNumber = maxNumber
       )
-      .catch(() ->
-        console.error("WTF?!! Should never fall here!")
+      .catch((err) ->
+        reportFuckup(err, jobUrl)
       )
 
   subscriptions = robot.brain.data.jenkins?.subscriptions
@@ -352,15 +370,18 @@ subscribe = (res) ->
   console = robot.logger
   console.debug(res)
 
-  jobUrl = res.match[1]
   room = res.envelope.room
-  if jobUrl.indexOf(baseUrl) != 0
-    jobUrl = "#{baseUrl}job/#{jobUrl}/"
   robot.brain.data.jenkins ?= {}
-  robot.brain.data.jenkins.subscriptions ?= {}
-  robot.brain.data.jenkins.subscriptions[jobUrl] ?= []
-  robot.brain.data.jenkins.subscriptions[jobUrl].push room
-  res.reply "Subscribed #{room} to #{jobUrl}"
+  subj = res.match[1]
+  if subj != 'fuckup'
+    if subj.indexOf(baseUrl) != 0
+      subj = "#{baseUrl}job/#{subj}/"
+    robot.brain.data.jenkins.subscriptions ?= {}
+    robot.brain.data.jenkins.subscriptions[subj] ?= []
+    robot.brain.data.jenkins.subscriptions[subj].push room
+  else
+    robot.brain.data.jenkins.fuckupRoom = room
+  res.reply "Subscribed #{room} to #{subj}"
 
 
 module.exports = (robot) ->
